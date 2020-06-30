@@ -22,6 +22,8 @@ public class GitLabController {
 
     private static final String ACCESS_TOKEN = "fsSzJfBK27kQzhN1Jtrc";
 
+    private static final String HOST = "http://35.209.27.246";
+
 //
 //    @PostMapping("/createModel")
 //    public void createModel(@RequestBody ModelDefinition modelDefinition) {
@@ -35,6 +37,9 @@ public class GitLabController {
     @PostMapping("/createModel")
     public GitlabProject createRepository (@RequestBody ModelDefinition modelDefinition) throws IOException {
         GitlabAPI api = GitlabAPI.connect("http://35.209.27.246", ACCESS_TOKEN);
+
+        GitlabProject newProject = new GitlabProject();
+
         List<GitlabGroup> group = api.getGroups();
 
         for (GitlabGroup eachGroup : group) {
@@ -42,14 +47,46 @@ public class GitLabController {
                 List<GitlabGroup> subgroups = getSubGroups(eachGroup.getId());
                 for (GitlabGroup eachSubGroup : subgroups) {
                     if(eachSubGroup.getName().equalsIgnoreCase(modelDefinition.getSubdomain())) {
-                        GitlabProject project = api.createProjectForGroup(modelDefinition.getName(),eachSubGroup, null);
+                        GitlabProject project = api.createProjectForGroup("models",eachSubGroup, null);
                         return project;
                     }
+                    else {
+                        GitlabGroup newSubgroup = api.createGroup(modelDefinition.getSubdomain(),modelDefinition.getSubdomain(),null,null,null,eachGroup.getId());
+                        GitlabProject project = api.createProjectForGroup("models",newSubgroup, null);
+                        return project;
+                    }
+
                 }
             }
+            else {
+                GitlabGroup newGroup = createGroup(modelDefinition);
+                GitlabGroup subgroup = api.createGroup(modelDefinition.getSubdomain(),modelDefinition.getSubdomain(),null,null,null,newGroup.getId());
+                GitlabProject project = api.createProjectForGroup("models",subgroup);
+                return project;
+
+            }
+
         }
-        return null;
+        return newProject;
     }
+
+    public GitlabAPI getAPI () {
+        return GitlabAPI.connect(HOST, ACCESS_TOKEN);
+    }
+
+    public GitlabGroup createGroup (ModelDefinition modelDefinition) throws IOException{
+        GitlabAPI api = getAPI();
+        GitlabGroup group = api.createGroup(modelDefinition.getDomain());
+        return group;
+    }
+
+    public GitlabGroup createSubGroupForGroup (String groupName, Integer groupId) throws IOException{
+
+        GitlabAPI api = getAPI();
+        GitlabGroup subGroup = api.createGroup(groupName,groupName,null,null,null,groupId);
+        return subGroup;
+    }
+
 
     public List<GitlabGroup> getSubGroups(Integer groupId) {
 
